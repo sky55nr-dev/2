@@ -1,0 +1,418 @@
+<title>ROUNDWISE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: in-car console — controls | journey map | plan, stacking to one column on phones. Single dark look (vehicle display). */
+:root {
+  color-scheme: dark;
+  --bg: #0d1015; --panel: #161a21; --panel2: #1e232c; --line: #2a303a;
+  --fg: #e7ebf1; --sub: #98a1af; --muted: #5d6573;
+  --out: #ffb547; --in: #3dd6c6; --glare: #ff5d5d; --crowd: #b57cff; --queue: #6ea8ff; --walk: #8bd17c; --good: #52d38a;
+  --f-display: "Space Grotesk", "IBM Plex Sans KR", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--f-body); font-size: 14px; line-height: 1.5; padding-block: 18px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 18px; }
+.logo { font-family: var(--f-display); font-weight: 700; font-size: 28px; letter-spacing: .02em; }
+.logo b { color: var(--out); font-weight: 700; } .logo i { color: var(--in); font-style: normal; }
+.thesis { color: var(--sub); font-size: 15px; text-wrap: balance; }
+.tabs { display: inline-flex; flex-wrap: wrap; background: var(--panel); border-radius: 12px; padding: 4px; gap: 4px; align-self: flex-start; }
+.tabs button { font: 600 14px var(--f-body); color: var(--sub); background: transparent; border: 0; border-radius: 9px; padding: 9px 16px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--in); color: var(--bg); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--out); outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: minmax(0, 27fr) minmax(0, 40fr) minmax(0, 33fr); gap: 14px; align-items: start; }
+@media (max-width: 1100px) { .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .col-map { grid-column: 1 / -1; order: -1; } }
+@media (max-width: 700px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card { background: var(--panel); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card h2 { font: 700 15px var(--f-body); margin: 0; }
+.scn { text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--fg); cursor: pointer; font: inherit; }
+.scn[aria-pressed="true"] { border-color: var(--in); background: var(--panel2); }
+.scn strong { display: block; font-size: 14px; } .scn span { color: var(--sub); font-size: 12px; }
+.note { color: var(--muted); font-size: 11.5px; }
+.pref label { display: flex; justify-content: space-between; color: var(--sub); font-size: 13px; }
+.pref output { color: var(--fg); font-family: var(--f-mono); font-size: 12px; }
+input[type=range] { width: 100%; accent-color: var(--in); }
+.toggle { display: flex; align-items: center; justify-content: space-between; color: var(--sub); font-size: 13px; gap: 8px; }
+.toggle input { accent-color: var(--in); width: 18px; height: 18px; }
+canvas { width: 100%; aspect-ratio: 16 / 10; max-width: 100%; display: block; background: var(--panel); border-radius: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--sub); font-size: 12px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.mod { display: flex; gap: 10px; align-items: flex-start; background: var(--panel); border-radius: 10px; padding: 8px 12px; }
+.mod b { flex: 0 0 104px; font: 700 10.5px var(--f-mono); letter-spacing: .06em; padding: 4px 6px; border-radius: 6px; background: var(--panel2); color: var(--sub); text-align: center; }
+.mod.on b { background: var(--c); color: var(--bg); }
+.mod p { margin: 0; font-size: 13px; color: var(--sub); min-width: 0; } .mod.on p { color: var(--fg); }
+.eta-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 14px; }
+.eta { font: 700 46px/1 var(--f-display); color: var(--in); font-variant-numeric: tabular-nums; }
+.eta-lbl { color: var(--sub); font-size: 13px; }
+.save { color: var(--good); font-size: 13px; }
+.phase { color: var(--sub); font-size: 12.5px; }
+ol.tl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.tl li { display: grid; grid-template-columns: 48px 12px minmax(0, 1fr); gap: 10px; align-items: start; }
+.tl time { color: var(--sub); font: 500 12.5px var(--f-mono); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.tl i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); margin-top: 5px; }
+.tl strong { display: block; font-size: 14px; } .tl span { color: var(--sub); font-size: 12px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions button { flex: 1 1 140px; min-height: 46px; border: 0; border-radius: 11px; font: 700 14px var(--f-body); cursor: pointer; background: var(--panel2); color: var(--fg); }
+.actions .primary { background: var(--c, var(--out)); color: var(--bg); }
+.replan { color: var(--out); font-size: 13px; }
+.plan { text-align: left; border: 0; border-radius: 10px; padding: 10px; background: transparent; color: var(--fg); cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 5px; }
+.plan[aria-pressed="true"] { background: var(--panel2); }
+.plan .top { display: flex; align-items: baseline; gap: 10px; }
+.plan .name { flex: 1; font-weight: 700; } .plan .rw { color: var(--in); }
+.plan .min { font: 700 16px var(--f-mono); font-variant-numeric: tabular-nums; }
+.plan .home { color: var(--sub); font-size: 12px; font-variant-numeric: tabular-nums; }
+.bar { display: flex; height: 9px; border-radius: 5px; overflow: hidden; background: var(--bg); }
+.bar > div { height: 100%; }
+.plan .detail { color: var(--sub); font-size: 11.5px; }
+.formula { font: 500 12px var(--f-mono); color: var(--sub); background: var(--panel2); border-radius: 8px; padding: 10px; overflow-x: auto; white-space: nowrap; }
+@media (prefers-reduced-motion: no-preference) { .eta { transition: color .3s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="logo"><b>ROUND</b><i>WISE</i></div>
+    <div class="thesis">가장 빨리 도착하는 길이, 가장 빨리 집에 돌아오는 길은 아니다.</div>
+  </header>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-event" aria-selected="true">행사 가는 길 · 왕복 설계</button>
+    <button role="tab" id="tab-pass" aria-selected="false">야구 안 봐요 · 인파 회피</button>
+  </div>
+
+  <div class="grid">
+    <div class="col">
+      <section class="card" id="scn-card"><h2>여정 선택</h2><div id="scn-list" class="col" style="gap:8px"></div>
+        <p class="note">교통·주차·인파 수치는 서비스 동작을 보여주기 위한 가상 데이터이며, 실제 검증된 절감 효과가 아닙니다.</p></section>
+      <section class="card" id="pass-card" hidden><h2>야구 안 봐요, 그냥 지나가요</h2>
+        <p style="margin:0"><strong>상암 → 스타필드 하남</strong><br><span class="note" style="font-size:12px;color:var(--sub)">7월 토요일 17:20 출발 · 잠실야구장 18:00 경기 종료와 겹침</span></p>
+        <p style="margin:0;color:var(--sub);font-size:13px">기존 내비는 출발 시점의 교통만 보고 경로를 고릅니다. ROUNDWISE는 내가 잠실 옆을 지날 시각에 경기 종료 인파·차량이 몰려나오는지까지 예측해 우회 경로나 출발 시각을 제안합니다.</p></section>
+      <section class="card"><h2>내 선호 (λ 가중치)</h2>
+        <div class="pref"><label for="p-glare">역광 민감도 λ1 <output id="o-glare"></output></label><input type="range" id="p-glare" min="0" max="4" step="0.1" value="1.5"></div>
+        <div class="pref"><label for="p-crowd">인파 회피 λ3 <output id="o-crowd"></output></label><input type="range" id="p-crowd" min="0" max="4" step="0.1" value="1"></div>
+        <div class="pref ev"><label for="p-fee">주차비 민감도 λ2 (분/천원) <output id="o-fee"></output></label><input type="range" id="p-fee" min="0" max="2" step="0.1" value="0.5"></div>
+        <div class="pref ev"><label for="p-walk">도보 부담 <output id="o-walk"></output></label><input type="range" id="p-walk" min="0.5" max="3" step="0.1" value="1"></div>
+        <div class="toggle"><label for="p-flex">출발 시각 조정 허용</label><input type="checkbox" id="p-flex" checked></div>
+        <div class="formula">J = T<sub>왕복주행</sub> + w·T<sub>도보</sub> + T<sub>입·출차대기</sub> + λ1·R<sub>역광</sub> + λ2·C<sub>주차비</sub> + λ3·R<sub>인파</sub> + λ<sub>idle</sub>·T<sub>대기</sub></div>
+      </section>
+    </div>
+
+    <div class="col col-map">
+      <canvas id="map" width="1280" height="800" aria-label="여정 지도: 경로, 주차장, 역광과 인파 구간"></canvas>
+      <div class="legend">
+        <span style="--c:var(--out)">가는 길</span><span style="--c:var(--in)">돌아오는 길</span>
+        <span style="--c:var(--glare)">역광 구간</span><span style="--c:var(--crowd)">인파 밀집</span><span style="--c:var(--sub)">주차장</span>
+      </div>
+      <div id="mods" class="col" style="gap:6px"></div>
+    </div>
+
+    <div class="col" id="right"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+/* ================= engine (port of the Android app's Kotlin engine) ================= */
+const R = 6371.0088, rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
+const dist = (a, b) => { const dLa = rad(b[0]-a[0]), dLo = rad(b[1]-a[1]);
+  const h = Math.sin(dLa/2)**2 + Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.min(1, Math.sqrt(h))); };
+const bearing = (a, b) => { const p1 = rad(a[0]), p2 = rad(b[0]), dl = rad(b[1]-a[1]);
+  return (deg(Math.atan2(Math.sin(dl)*Math.cos(p2), Math.cos(p1)*Math.sin(p2) - Math.sin(p1)*Math.cos(p2)*Math.cos(dl))) + 360) % 360; };
+const angDiff = (a, b) => Math.abs((((a-b) % 360) + 540) % 360 - 180);
+const lerp = (a, b, t) => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t];
+const densify = (pts, maxKm = 0.8) => { const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) { const n = Math.max(1, Math.ceil(dist(pts[i-1], pts[i]) / maxKm)); for (let k = 1; k <= n; k++) out.push(lerp(pts[i-1], pts[i], k/n)); } return out; };
+const norm = d => ((d % 360) + 360) % 360;
+function sun(ms, p) {
+  const n = ms / 86400000 + 2440587.5 - 2451545.0;
+  const L = norm(280.460 + 0.9856474*n), g = rad(norm(357.528 + 0.9856003*n));
+  const lam = rad(L + 1.915*Math.sin(g) + 0.020*Math.sin(2*g)), eps = rad(23.439 - 0.0000004*n);
+  const ra = Math.atan2(Math.cos(eps)*Math.sin(lam), Math.cos(lam)), dec = Math.asin(Math.sin(eps)*Math.sin(lam));
+  const H = rad(norm(norm(280.46061837 + 360.98564736629*n) + p[1] - deg(ra))), phi = rad(p[0]);
+  const el = Math.asin(Math.sin(phi)*Math.sin(dec) + Math.cos(phi)*Math.cos(dec)*Math.cos(H));
+  const az = Math.atan2(-Math.sin(H)*Math.cos(dec), Math.sin(dec)*Math.cos(phi) - Math.cos(dec)*Math.sin(phi)*Math.cos(H));
+  return { az: (deg(az) + 360) % 360, el: deg(el) };
+}
+const glareI = (head, s) => { const e = s.el; if (e <= 0 || e >= 35) return 0; const a = angDiff(head, s.az); if (a >= 40) return 0;
+  const ef = e < 4 ? e/4 : e <= 15 ? 1 : 1 - (e-15)/20; return Math.min(1, Math.max(0, (1 - a/40) * ef)); };
+const MIN = 60000, bump = (x, c, w) => Math.max(0, 1 - Math.abs(x - c) / w);
+const WEEKEND = [1,1,1,1,1,1,1,1.05,1.1,1.15,1.25,1.35,1.4,1.45,1.45,1.4,1.45,1.55,1.55,1.4,1.3,1.2,1.1,1.05];
+const KST = 9 * 60; // minutes offset
+const T = (mo, d, h, mi) => Date.UTC(2026, mo-1, d, h, mi) - KST*MIN;
+const hhmm = ms => { const d = new Date(ms + KST*MIN); return String(d.getUTCHours()).padStart(2,"0") + ":" + String(d.getUTCMinutes()).padStart(2,"0"); };
+const hourOf = ms => { const d = new Date(ms + KST*MIN); return d.getUTCHours() + d.getUTCMinutes()/60; };
+
+function traffic(hotspots, endOv) {
+  return {
+    mult(at, p, sens) { const h = hourOf(at), i = Math.floor(h) % 24; const base = WEEKEND[i] + (WEEKEND[(i+1)%24] - WEEKEND[i]) * (h - i);
+      let s = 0; hotspots.forEach((hs, k) => { const end = k === 0 && endOv ? endOv : hs.end; const prox = Math.min(1, Math.max(0, 1 - dist(p, hs.loc)/4)); if (!prox) return;
+        const sc = Math.min(2, Math.max(.2, hs.att/23000)); s += prox * sc * (bump((at-hs.start)/MIN, -25, 50)*0.8 + bump((at-end)/MIN, 25, 65)*1.6); });
+      return 1 + (base*(1+s) - 1) * sens; },
+    crowd(at, p) { let c = 0; hotspots.forEach((hs, k) => { const end = k === 0 && endOv ? endOv : hs.end; const prox = Math.min(1, Math.max(0, 1 - dist(p, hs.loc)/(1.2*1.6))); if (!prox) return;
+        const sc = Math.min(1.5, Math.max(.2, hs.att/23000)); c += prox * sc * Math.max(bump((at-hs.start)/MIN, -25, 40)*0.7, bump((at-end)/MIN, 15, 40)); }); return c; },
+  };
+}
+const dense = new Map();
+function leg(tr, cor, depart, forward, snapshot) {
+  let pts = dense.get(cor.id); if (!pts) { pts = densify(cor.pts); dense.set(cor.id, pts); }
+  if (!forward) pts = pts.slice().reverse();
+  let clock = depart, mins = 0, km = 0, gW = 0, gE = 0, cW = 0, cE = 0; const gS = [], cS = [];
+  for (let i = 1; i < pts.length; i++) { const a = pts[i-1], b = pts[i], sk = dist(a, b), mid = lerp(a, b, .5);
+    const sm = sk / cor.kmh * 60 * tr.mult(snapshot ?? clock, mid, cor.sens);
+    const g = glareI(bearing(a, b), sun(clock, mid)); gW += sm*g; if (g >= .25) { gE += sm; gS.push([a, b, g]); }
+    const c = tr.crowd(clock, mid); cW += sm*c; if (c >= .15) { cE += sm; cS.push([a, b, Math.min(1, c)]); }
+    mins += sm; km += sk; clock += sm*MIN; }
+  return { cor, depart, mins, km, gW, gE, gS, cW, cE, cS, arrive: depart + mins*MIN, sun0: sun(depart, pts[0]) };
+}
+const exitWait = (lot, ex) => { const crowd = lot.cap*.88*.65*ex.share, mu = ex.lanes*5, t = 7.5; return Math.max(0, crowd*(t/15) - mu*t) / mu; };
+const entryWait = (lot, at, start) => { const b = (start-at)/MIN; const f = b <= 0 ? .6 : b <= 20 ? 1 : b <= 70 ? 1 - (b-20)/50 : 0; return lot.peak*f; };
+const level = w => w < .5 ? "없음" : w < 2.5 ? "낮음" : w < 6 ? "보통" : "높음";
+
+/* ================= demo data (approximate coordinates, illustrative parameters) ================= */
+const HOME = { name: "집 · 상암동", loc: [37.5779, 126.8920] };
+const BALL = { name: "잠실야구장", loc: [37.5122, 127.0719] }, STAD = { name: "잠실 주경기장", loc: [37.5157, 127.0731] };
+const CORR = [
+  { id: "olympic", name: "올림픽대로", kmh: 64, sens: 1.0, pts: [[37.5779,126.8920],[37.5560,126.8880],[37.5420,126.8920],[37.5330,126.9050],[37.5270,126.9300],[37.5180,126.9600],[37.5100,126.9950],[37.5180,127.0200],[37.5240,127.0500],[37.5160,127.0640],[37.5122,127.0719]] },
+  { id: "gangbyeon", name: "강변북로", kmh: 60, sens: 1.1, pts: [[37.5779,126.8920],[37.5560,126.9050],[37.5450,126.9300],[37.5390,126.9500],[37.5280,126.9800],[37.5260,127.0000],[37.5370,127.0300],[37.5420,127.0600],[37.5300,127.0880],[37.5180,127.0860],[37.5122,127.0719]] },
+  { id: "southern", name: "서부간선·남부순환", kmh: 52, sens: .85, pts: [[37.5779,126.8920],[37.5450,126.8800],[37.5150,126.8820],[37.4850,126.8850],[37.4780,126.9150],[37.4770,126.9500],[37.4790,126.9850],[37.4850,127.0300],[37.4950,127.0550],[37.5050,127.0650],[37.5122,127.0719]] },
+];
+const LOTS = [
+  { id: "main", name: "종합운동장 주차장", loc: [37.5148,127.0735], walk: 3, cap: 1500, fee: 2400, peak: 14, full: 30,
+    exits: [{ id: "n", name: "정문(올림픽로)", lanes: 2, share: .75, acc: { olympic: 4, gangbyeon: 4, southern: 5 } },
+            { id: "e", name: "동문(탄천동로)", lanes: 1, share: .25, acc: { olympic: 3, gangbyeon: 7, southern: 4 } }] },
+  { id: "tan", name: "탄천 공영주차장", loc: [37.5108,127.0660], walk: 9, cap: 420, fee: 1800, peak: 4,
+    exits: [{ id: "r", name: "올림픽대로 직결 램프", lanes: 2, share: 1, acc: { olympic: 1, gangbyeon: 7, southern: 3 } }] },
+  { id: "sin", name: "잠실새내역 민영주차장", loc: [37.5116,127.0858], walk: 7, cap: 260, fee: 3000, peak: 5,
+    exits: [{ id: "b", name: "잠실대교 방면 출구", lanes: 1, share: 1, acc: { olympic: 6, gangbyeon: 1.5, southern: 6 } }] },
+];
+const SCN = [
+  { title: "주말 야구 · 잠실야구장", sub: "7월 토요일 15:00 경기 · 18:00 전후 종료 예상", venue: BALL, start: T(7,18,15,0), end: T(7,18,18,0), planned: T(7,18,13,30) },
+  { title: "가을 야구 · 잠실야구장", sub: "10월 토요일 14:00 경기 · 17:10 종료 예상 (석양 귀가)", venue: BALL, start: T(10,10,14,0), end: T(10,10,17,10), planned: T(10,10,12,30) },
+  { title: "겨울 콘서트 · 잠실 주경기장", sub: "12월 토요일 18:00 공연 · 21:00 종료 (야간 · SUNBLIND 자동 비활성)", venue: STAD, start: T(12,19,18,0), end: T(12,19,21,0), planned: T(12,19,16,40) },
+];
+const PASS = { origin: HOME, dest: { name: "스타필드 하남", loc: [37.5455,127.2240] }, planned: T(7,18,17,20),
+  hot: [{ name: "잠실야구장", loc: BALL.loc, start: T(7,18,15,0), end: T(7,18,18,0), att: 23000 }],
+  corr: [
+    { id: "p-ol", name: "올림픽대로 (잠실 경유)", kmh: 64, sens: 1, pts: [[37.5779,126.8920],[37.5420,126.8920],[37.5270,126.9300],[37.5100,126.9950],[37.5240,127.0500],[37.5165,127.0700],[37.5190,127.0950],[37.5330,127.1250],[37.5480,127.1600],[37.5455,127.2240]] },
+    { id: "p-gb", name: "강변북로 → 구리암사대교", kmh: 60, sens: 1.1, pts: [[37.5779,126.8920],[37.5450,126.9300],[37.5280,126.9800],[37.5370,127.0300],[37.5440,127.0650],[37.5470,127.1000],[37.5560,127.1300],[37.5600,127.1650],[37.5455,127.2240]] },
+    { id: "p-no", name: "내부순환 → 동부간선 → 구리", kmh: 44, sens: 1, pts: [[37.5779,126.8920],[37.5850,126.9400],[37.5950,127.0000],[37.5900,127.0450],[37.5980,127.0700],[37.5950,127.1100],[37.5750,127.1500],[37.5600,127.1900],[37.5455,127.2240]] },
+  ] };
+
+/* ================= optimiser ================= */
+function analyze(s, P, endOv) {
+  const end = endOv ?? s.end, hot = [{ name: s.venue.name, loc: s.venue.loc, start: s.start, end: s.end, att: 23000 }];
+  const tr = traffic(hot, end), cache = new Map();
+  const L = (c, dep, fwd) => { const k = c.id + dep + fwd; let r = cache.get(k); if (!r) { r = leg(tr, c, dep, fwd); cache.set(k, r); } return r; };
+  const deps = P.flex ? [-60,-50,-40,-30,-20,-10,0,10,20,30].map(m => s.planned + m*MIN) : [s.planned];
+  const arrival = (o, lot) => { const full = lot.full != null && (s.start - o.arrive)/MIN < lot.full;
+    const entry = entryWait(lot, o.arrive, s.start) + (full ? 12 : 0); const atV = o.arrive + (entry + lot.walk)*MIN;
+    const slack = (s.start - 15*MIN - atV)/MIN; return { entry, full, atV, idle: Math.max(0, slack), late: Math.max(0, -slack) }; };
+  const assemble = (dep, o, lot, a, ex, ic) => { const ew = exitWait(lot, ex), acc = ex.acc[ic.id] ?? 5;
+    const leave = end + (lot.walk + ew)*MIN, back = L(ic, Math.floor((leave + acc*MIN)/MIN)*MIN, false);
+    const parked = (leave - (o.arrive + a.entry*MIN))/MIN;
+    const p = { dep, out: o, lot, entry: a.entry, full: a.full, atV: a.atV, idle: a.idle, late: a.late, ex, ew, acc, back,
+      fee: Math.ceil(Math.max(0, parked)/60) * lot.fee };
+    p.drive = o.mins + back.mins + acc; p.walkT = lot.walk*2; p.queue = a.entry + ew; p.total = p.drive + p.walkT + p.queue;
+    p.home = back.arrive; p.gW = o.gW + back.gW; p.gE = o.gE + back.gE; p.cW = o.cW + back.cW; p.cE = o.cE + back.cE; p.km = o.km + back.km; return p; };
+  const enumerate = ds => { const out = []; for (const d of ds) for (const oc of CORR) { const o = L(oc, d, true);
+    for (const lot of LOTS) { const a = arrival(o, lot); for (const ex of lot.exits) for (const ic of CORR) out.push(assemble(d, o, lot, a, ex, ic)); } } return out; };
+  const cost = (p, w) => { const late = p.late > 0 ? 40 + p.late*8 : 0; if (w.dist) return p.km*100 + p.total*.01 + late;
+    return p.drive + p.queue + p.walkT*w.walk + w.glare*p.gW + w.fee*p.fee/1000 + w.idle*p.idle + w.crowd*p.cW + late; };
+  const all = enumerate(deps), plannedOnly = P.flex ? enumerate([s.planned]) : all;
+  const best = (w, pool) => pool.reduce((m, p) => { const c = cost(p, w); return c < m.c ? { p, c } : m; }, { p: null, c: Infinity }).p;
+  const base = (() => { const o = CORR.map(c => L(c, s.planned, true)).sort((a, b) => a.mins - b.mins)[0];
+    const lot = [...LOTS].sort((a, b) => a.walk - b.walk)[0], ex = [...lot.exits].sort((a, b) => b.share - a.share)[0], a = arrival(o, lot);
+    return CORR.map(ic => assemble(s.planned, o, lot, a, ex, ic)).sort((x, y) => (x.back.mins + x.acc) - (y.back.mins + y.acc))[0]; })();
+  const plans = [
+    ["기존 내비", base],
+    ["최단거리 중심", best({ dist: true }, plannedOnly)],
+    ["빠른 귀가 중심", best({ glare: 0, fee: .1, walk: 1, idle: .25, crowd: 0 }, all)],
+    ["역광 회피 중심", best({ glare: 6, fee: .1, walk: 1, idle: .25, crowd: 0 }, all)],
+    ["인파 회피 중심", best({ glare: .3, fee: .1, walk: 1, idle: .25, crowd: 6 }, all)],
+    ["ROUNDWISE 추천", best({ glare: P.glare, fee: P.fee, walk: P.walk, idle: .25, crowd: P.crowd }, all)],
+  ];
+  return { s, end, plans, all, base, rec: plans[5][1], replanFrom: (p, newEnd) => replan(s, P, p, newEnd) };
+}
+function replan(s, P, p, newEnd) {
+  const r = analyze(s, { ...P, flex: false }, newEnd);
+  // keep the parked lot: choose best exit × return corridor for that lot only
+  const w = p0 => p0.drive + p0.queue + p0.walkT*P.walk + P.glare*p0.gW + P.fee*p0.fee/1000 + P.crowd*p0.cW;
+  const pool = r.all.filter(q => q.lot.id === p.lot.id && q.out.cor.id === p.out.cor.id);
+  const shifted = q => ({ ...q, dep: p.dep });
+  const after = shifted(pool.reduce((m, q) => w(q) < w(m) ? q : m));
+  const before = shifted(pool.find(q => q.ex.id === p.ex.id && q.back.cor.id === p.back.cor.id));
+  return { before, after, changed: after.ex.id !== p.ex.id || after.back.cor.id !== p.back.cor.id };
+}
+function analyzePass(P) {
+  const tr = traffic(PASS.hot), pl = PASS.planned;
+  const snap = PASS.corr.map(c => leg(tr, c, pl, true, pl)).sort((a, b) => a.mins - b.mins)[0].cor;
+  const baseLeg = leg(tr, snap, pl, true);
+  const plannedLegs = PASS.corr.map(c => leg(tr, c, pl, true));
+  const deps = P.flex ? [-30,-20,-10,0,10,20,30,40].map(m => pl + m*MIN) : [pl];
+  const cost = (l, g, c, sh) => l.mins + g*l.gW + c*l.cW + .15*Math.abs(sh);
+  const fastest = [...plannedLegs].sort((a, b) => a.mins - b.mins)[0];
+  const crowd = [...plannedLegs].sort((a, b) => cost(a, .3, 6, 0) - cost(b, .3, 6, 0))[0];
+  let rec = null, rc = Infinity;
+  for (const d of deps) for (const c of PASS.corr) { const l = leg(tr, c, d, true), v = cost(l, P.glare, P.crowd*2, (d-pl)/MIN); if (v < rc) { rc = v; rec = l; } }
+  return [["기존 내비", baseLeg], ["예측 최단시간", fastest], ["인파 회피 중심", crowd], ["ROUNDWISE 추천", rec]];
+}
+
+/* ================= UI ================= */
+const $ = id => document.getElementById(id);
+const st = { mode: "event", scn: 0, sel: 5, selPass: 3, delay: 0, phase: 0, r: null, re: null, pass: null };
+const P = () => ({ glare: +$("p-glare").value, crowd: +$("p-crowd").value, fee: +$("p-fee").value, walk: +$("p-walk").value, flex: $("p-flex").checked });
+const PHASES = ["출발 전 계획", "가는 길 안내 중", "주차 완료 · 일정 중", "귀가 안내 중"];
+const r0 = Math.round;
+
+function compute() {
+  ["glare", "crowd", "fee", "walk"].forEach(k => $("o-" + k).textContent = (k === "walk" ? "×" : "") + (+$("p-" + k).value).toFixed(1));
+  if (st.mode === "event") { st.r = analyze(SCN[st.scn], P()); st.re = null; st.delay = 0; }
+  else st.pass = analyzePass(P());
+  render();
+}
+const active = () => st.re ? st.re.after : st.r.plans[st.sel][1];
+
+function modules() {
+  const r = st.r, rec = active(), base = r.base, saved = base.total - rec.total;
+  const minG = r.all.reduce((m, p) => p.gW < m.gW ? p : m);
+  const sunOn = rec.gW >= .5 || base.gW >= .5;
+  const sunNote = sunOn ? (rec.gW + .5 < base.gW ? `역광 노출 ${level(base.gW)}(${r0(base.gE)}분) → ${level(rec.gW)}(${r0(rec.gE)}분)`
+      : `귀가 방향 역광 ${level(rec.gW)}(${r0(rec.gE)}분) · 최소 역광 경로(${minG.back.cor.name})는 +${r0(minG.total - rec.total)}분 → λ1을 올리면 선택`)
+    : rec.back.sun0.el <= 0 ? "귀가 시 일몰 후 · 역광 영향 없음 (자동 비활성)" : "태양 고도·진행 방향상 역광 영향 미미 (자동 비활성)";
+  const exOn = rec.lot.id !== base.lot.id || rec.ex.id !== base.ex.id;
+  const crOn = rec.cW + .5 < base.cW;
+  return [
+    ["REVERSE ETA", true, `귀가 예정 ${hhmm(rec.home)} · 기존 내비 대비 ${saved >= 1 ? r0(saved) + "분 단축" : "차이 미미"}`, "--in"],
+    ["EXIT FIRST", exOn, exOn ? `${base.lot.name} 출차 대기 ${r0(base.ew)}분 → ${rec.lot.name}(${rec.ex.name}) ${r0(rec.ew)}분` : "출차 혼잡 차이가 작아 가장 가까운 주차장 유지", "--queue"],
+    ["SUNBLIND", sunOn, sunNote, "--glare"],
+    ["CROWD AVOID", crOn, crOn ? `인파 밀집 구간 ${r0(base.cE)}분 → ${r0(rec.cE)}분` : `인파 밀집 구간 ${r0(rec.cE)}분 · 출차 단축 효과가 더 커서 시간 우선 (λ3로 조절)`, "--crowd"],
+  ];
+}
+const modHtml = ([n, on, t, c]) => `<div class="mod ${on ? "on" : ""}" style="--c:var(${c})"><b>${n}</b><p>${t}</p></div>`;
+
+function bar(parts, max) { return `<div class="bar">${parts.map(([v, c]) => v > 0 ? `<div style="width:${(v/max*100).toFixed(2)}%;background:var(${c})"></div>` : "").join("")}</div>`; }
+
+function render() {
+  const ev = st.mode === "event";
+  $("tab-event").setAttribute("aria-selected", ev); $("tab-pass").setAttribute("aria-selected", !ev);
+  $("scn-card").hidden = !ev; $("pass-card").hidden = ev;
+  document.querySelectorAll(".ev").forEach(e => e.hidden = !ev);
+  $("scn-list").innerHTML = SCN.map((s, i) => `<button class="scn" data-i="${i}" aria-pressed="${i === st.scn}"><strong>${s.title}</strong><span>${s.sub}</span></button>`).join("");
+  ev ? renderEvent() : renderPass();
+  draw();
+}
+
+function renderEvent() {
+  const r = st.r, p = active(), base = r.base, saved = r0(base.total - p.total), s = r.s;
+  $("mods").innerHTML = modules().map(modHtml).join("");
+  const max = Math.max(...r.plans.map(([, q]) => q.total));
+  const steps = [
+    [hhmm(p.dep), `출발 · ${p.out.cor.name}`, `주행 ${r0(p.out.mins)}분 · 역광 ${level(p.out.gW)}`, "--out"],
+    [hhmm(p.out.arrive), `주차 · ${p.lot.name}`, `입차 대기 ${r0(p.entry)}분 · 도보 ${p.lot.walk}분${p.full ? " · 만차 위험" : ""}`, "--walk"],
+    [hhmm(s.start), s.venue.name, `도착 ${hhmm(p.atV)} · 종료 ${hhmm(st.re ? st.r.end + st.delay*MIN : r.end)}`, "--fg"],
+    [hhmm(p.back.depart - p.acc*MIN), `출차 · ${p.ex.name}`, `출차 대기 ${r0(p.ew)}분 · 주차비 ${p.fee.toLocaleString("ko-KR")}원`, "--queue"],
+    [hhmm(p.home), `귀가 · ${p.back.cor.name}`, `주행 ${r0(p.back.mins)}분 · 역광 ${level(p.back.gW)} · 인파 ${r0(p.back.cE)}분`, "--in"],
+  ];
+  const btn = [["가는 길 안내 시작", "--out"], ["주차 완료", "--walk"], ["귀가 안내 시작", "--in"], ["여정 종료", "--sub"]][st.phase];
+  let replanTxt = "";
+  if (st.re) { const d = r0((st.re.after.home - st.re.before.home)/MIN);
+    replanTxt = `<p class="replan">재계획: 기존 계획 유지 시 ${hhmm(st.re.before.home)} → 변경 후 ${hhmm(st.re.after.home)}${d < 0 ? ` (${-d}분 절약)` : ""} · ${st.re.changed ? `${st.re.after.ex.name} / ${st.re.after.back.cor.name}로 변경` : "계획 유지"}</p>`; }
+  $("right").innerHTML = `
+    <section class="card">
+      <div class="phase">${PHASES[st.phase]}${st.delay ? ` · 일정 ${st.delay}분 지연 반영` : ""}</div>
+      <div class="eta-row"><div><div class="eta-lbl">귀가 예정</div><div class="eta">${hhmm(p.home)}</div></div>
+        <div><div>총 이동 ${r0(p.total)}분</div><div class="save">${saved > 0 ? `기존 내비 ${r0(base.total)}분 대비 ${saved}분 단축` : "기존 내비와 비슷"}</div></div></div>
+      <ol class="tl">${steps.map(([t, a, b, c]) => `<li><time>${t}</time><i style="--c:var(${c})"></i><div><strong>${a}</strong><span>${b}</span></div></li>`).join("")}</ol>
+      <div class="actions"><button class="primary" id="act-main" style="--c:var(${btn[1]})">${btn[0]}</button>
+        <button id="act-delay">경기 +15분 지연</button></div>
+      ${replanTxt}
+    </section>
+    <section class="card"><h2>여정 비교 · ${r.all.length}개 조합 탐색</h2>
+      ${r.plans.map(([n, q], i) => `<button class="plan" data-plan="${i}" aria-pressed="${i === st.sel && !st.re}">
+        <span class="top"><span class="name ${i === 5 ? "rw" : ""}">${n}</span><span class="min">${r0(q.total)}분</span><span class="home">귀가 ${hhmm(q.home)}</span></span>
+        ${bar([[q.drive, "--out"], [q.queue, "--queue"], [q.walkT, "--walk"]], max)}
+        <span class="detail">${q.lot.name} · ${q.out.cor.name}/${q.back.cor.name} · 출발 ${hhmm(q.dep)} · 역광 ${level(q.gW)} · 인파 ${r0(q.cE)}분 · ${q.km.toFixed(1)}km</span></button>`).join("")}
+      <p class="note">막대: <span style="color:var(--out)">왕복 주행</span> · <span style="color:var(--queue)">입·출차 대기</span> · <span style="color:var(--walk)">도보</span> (일정 시간 제외)</p>
+    </section>`;
+}
+
+function renderPass() {
+  const plans = st.pass, [, p] = plans[st.selPass], [, b] = plans[0];
+  const changed = p.cor.id !== b.cor.id, shift = r0((p.depart - PASS.planned)/MIN);
+  const on = b.cW >= 1;
+  $("mods").innerHTML = modHtml(["CROWD AVOID", on, on
+    ? `잠실야구장 경기 종료(18:00) 인파·차량 집중 예측. 기존 내비는 출발 시점 교통만 보고 ${b.cor.name}(인파 구간 ${r0(b.cE)}분)를 고르지만, ROUNDWISE는 ${plans[3][1].cor.name}${r0((plans[3][1].depart - PASS.planned)/MIN) ? ` + 출발 ${r0((plans[3][1].depart - PASS.planned)/MIN)}분 조정` : ""}로 인파 구간 ${r0(plans[3][1].cE)}분.`
+    : "경로 주변에 영향을 주는 행사가 없어 일반 최단경로와 동일합니다.", "--crowd"]);
+  const max = Math.max(...plans.map(([, l]) => l.mins)), d = r0((b.arrive - p.arrive)/MIN);
+  $("right").innerHTML = `
+    <section class="card"><div class="eta-lbl">스타필드 하남 도착 예정</div>
+      <div class="eta-row"><div class="eta">${hhmm(p.arrive)}</div>
+        <div><div>${p.cor.name} · 출발 ${hhmm(p.depart)}</div><div class="save">인파 구간 ${r0(b.cE)}분 → ${r0(p.cE)}분${d > 0 ? ` · ${d}분 일찍 도착` : ""}</div></div></div>
+      <div class="actions"><button class="primary" style="--c:var(--in)" id="act-pass">이 경로로 안내 시작</button></div>
+      <p class="note">앱에서는 NaviHelper로 목적지 + 경로 경유지(${changed ? "우회 지점" : "선택 경로"})를 차량 내비게이션에 전달합니다.</p>
+    </section>
+    <section class="card"><h2>경로 비교</h2>
+      ${plans.map(([n, l], i) => `<button class="plan" data-pass="${i}" aria-pressed="${i === st.selPass}">
+        <span class="top"><span class="name ${i === 3 ? "rw" : ""}">${n}</span><span class="min">${r0(l.mins)}분</span><span class="home">도착 ${hhmm(l.arrive)}</span></span>
+        ${bar([[l.mins - l.cE, "--out"], [l.cE, "--crowd"]], max)}
+        <span class="detail">${l.cor.name} · 출발 ${hhmm(l.depart)} · 인파 구간 ${r0(l.cE)}분 · 역광 ${level(l.gW)}</span></button>`).join("")}
+      <p class="note">보라색은 행사 인파·차량이 몰리는 구간을 지나는 시간입니다. 실서비스에서는 서울시 실시간 도시데이터 같은 혼잡도 소스로 교체합니다.</p>
+    </section>`;
+  if (shift) {}
+}
+
+/* ---------- map ---------- */
+const cv = $("map"), cx = cv.getContext("2d");
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function draw() {
+  const W = cv.width, H = cv.height; cx.clearRect(0, 0, W, H);
+  const ev = st.mode === "event";
+  const corr = ev ? CORR : PASS.corr, home = ev ? HOME : PASS.origin, dest = ev ? st.r.s.venue : PASS.dest;
+  const hot = ev ? [{ loc: st.r.s.venue.loc }] : PASS.hot;
+  const out = ev ? active().out : st.pass[st.selPass][1], back = ev ? active().back : null;
+  const pts = corr.flatMap(c => c.pts).concat([home.loc, dest.loc], ev ? LOTS.map(l => l.loc) : []);
+  const la = pts.map(p => p[0]), lo = pts.map(p => p[1]), minLa = Math.min(...la), maxLa = Math.max(...la), minLo = Math.min(...lo), maxLo = Math.max(...lo);
+  const kx = Math.cos(rad((minLa + maxLa)/2)), w = (maxLo - minLo)*kx, h = maxLa - minLa, pad = 70;
+  const sc = Math.min((W - 2*pad)/w, (H - 2*pad - 30)/h), ox = (W - w*sc)/2, oy = (H - h*sc)/2 + 14;
+  const P2 = p => [ox + (p[1] - minLo)*kx*sc, oy + (maxLa - p[0])*sc];
+  const line = (ps, col, wd, dash) => { cx.beginPath(); ps.forEach((p, i) => { const [x, y] = P2(p); i ? cx.lineTo(x, y) : cx.moveTo(x, y); });
+    cx.strokeStyle = col; cx.lineWidth = wd; cx.lineCap = cx.lineJoin = "round"; cx.setLineDash(dash || []); cx.stroke(); cx.setLineDash([]); };
+  hot.forEach(hs => { const [x, y] = P2(hs.loc), r = 1.92/111*sc; const g = cx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, "rgba(181,124,255,.5)"); g.addColorStop(1, "rgba(181,124,255,0)"); cx.fillStyle = g; cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.fill(); });
+  corr.forEach(c => line(c.pts, css("--line"), 8));
+  const segs = (l) => { l.cS.forEach(([a, b, i]) => { cx.globalAlpha = .55 + .45*i; line([a, b], css("--crowd"), 16); });
+    l.gS.forEach(([a, b, i]) => { cx.globalAlpha = .5 + .5*i; line([a, b], css("--glare"), 11); }); cx.globalAlpha = 1; };
+  line(out.cor.pts, css("--out"), 8); if (back) line(back.cor.pts, css("--in"), 8, back.cor.id === out.cor.id ? [22, 14] : null);
+  segs(out); if (back) segs(back);
+  const text = (t, x, y, col, size, bold) => { cx.font = `${bold ? 700 : 500} ${size}px ${css("--f-body")}`; cx.fillStyle = col; cx.textAlign = "center"; cx.fillText(t, x, y); };
+  if (ev) LOTS.forEach(l => { const [x, y] = P2(l.loc), on = l.id === active().lot.id; cx.fillStyle = on ? css("--in") : css("--sub"); cx.fillRect(x - 11, y - 11, 22, 22); text("P", x, y + 7, css("--bg"), 17, true); });
+  { const [x, y] = P2(home.loc); cx.fillStyle = css("--fg"); cx.beginPath(); cx.arc(x, y, 13, 0, 7); cx.fill(); cx.fillStyle = css("--bg"); cx.beginPath(); cx.arc(x, y, 6, 0, 7); cx.fill(); text(home.name, x, y + 38, css("--fg"), 24); }
+  { const [x, y] = P2(dest.loc); cx.fillStyle = css("--out"); cx.beginPath(); cx.arc(x, y, 14, 0, 7); cx.fill(); text(dest.name, x, y - 26, css("--fg"), 24); }
+  const sunL = back || out, s0 = sunL.sun0, c = [W - 90, 90];
+  cx.fillStyle = css("--panel2"); cx.beginPath(); cx.arc(c[0], c[1], 60, 0, 7); cx.fill(); cx.strokeStyle = css("--line"); cx.lineWidth = 2; cx.stroke();
+  text("N", c[0], c[1] - 38, css("--sub"), 18);
+  if (s0.el > 0) { const a = rad(s0.az), tx = c[0] + Math.sin(a)*46, ty = c[1] - Math.cos(a)*46; cx.strokeStyle = css("--out"); cx.lineWidth = 5; cx.beginPath(); cx.moveTo(...c); cx.lineTo(tx, ty); cx.stroke(); cx.fillStyle = css("--out"); cx.beginPath(); cx.arc(tx, ty, 10, 0, 7); cx.fill(); }
+  else text("☾", c[0], c[1] + 10, css("--sub"), 32);
+  text(`${back ? "귀가" : "출발"} ${hhmm(sunL.depart)} · 태양 ${r0(s0.el)}°`, c[0], c[1] + 88, css("--sub"), 19);
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.id === "tab-event" || t.id === "tab-pass") { st.mode = t.id === "tab-event" ? "event" : "pass"; st.phase = 0; compute(); return; }
+  if (t.dataset.i) { st.scn = +t.dataset.i; st.phase = 0; compute(); return; }
+  if (t.dataset.plan) { st.sel = +t.dataset.plan; st.re = null; st.delay = 0; render(); return; }
+  if (t.dataset.pass) { st.selPass = +t.dataset.pass; render(); return; }
+  if (t.id === "act-main") { st.phase = (st.phase + 1) % 4; if (st.phase === 0) { st.re = null; st.delay = 0; } render(); return; }
+  if (t.id === "act-delay") { st.delay += 15; const base = st.r.plans[st.sel][1]; st.re = st.r.replanFrom(base, st.r.end + st.delay*MIN); if (st.phase === 0) st.phase = 2; render(); return; }
+  if (t.id === "act-pass") { t.textContent = "차량 내비게이션으로 전달됨 (데모)"; }
+});
+["p-glare", "p-crowd", "p-fee", "p-walk", "p-flex"].forEach(id => $(id).addEventListener("input", compute));
+document.fonts && document.fonts.ready.then(draw);
+compute();
+})();
+</script>
