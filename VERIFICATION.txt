@@ -1,0 +1,15 @@
+VERIFIED ON PLEOS CONNECT 2.1 / API 34
+
+- Pure Java detector tests: PASS (boundaries, ordering, cooldown, invalid samples, low-speed maneuver, data gaps).
+- Android source compilation against actual SDK 35 API classes: PASS.
+- Gradle APK packaging and signing: BUILD SUCCESSFUL.
+- Package install: Success. Package: com.riskmemory.map.
+- Activity launch: Status: ok; window focus belongs to MainActivity.
+- Full demo: 2 braking candidates, 1 steering candidate, 64 simulated seconds, 0.66 simulated km.
+- Turn-only timeline filter excludes braking event entries: PASS.
+- Route marker detail and situation note saving: PASS.
+- History and situation note survive force-stop + relaunch: PASS.
+- Same-route replay shows previous-event approach notice: visually verified in risk-revisit.png.
+- Window launched on user Default desktop, not sandbox desktop.
+
+This is an offline simulation. No live vehicle signal capture, actual road map, GPS tracking, slip detection, crowd-sourced risk feed, or validated safety judgment is implemented.
