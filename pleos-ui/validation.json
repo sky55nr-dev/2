@@ -1,0 +1,13 @@
+﻿{
+    "date":  "2026-11-16",
+    "package":  "com.roundwise.pleos",
+    "uiChecks":  "PASS: route comparison, strategy selection, preference update, +15min replan, reset, EVENT/PASS modes",
+    "apkSha256":  "B4A45E30359AF08730527933EB7A4D7178E8B1CC495F7DA9305E52979E65C85D",
+    "navigationSdk":  "CONNECTED",
+    "routeRequest":  "SENT",
+    "nativeNavigationScreen":  "CONFIRMED ai.umos.maps.android.navigation.app/.MainActivity",
+    "routeGuidance":  "NOT CONFIRMED",
+    "navigationBlock":  "Navigation process UnknownHostException for connect-gw-coral.umos.ai",
+    "sourceBuild":  "Original verified APK runtime plus native Java UI, developer signed",
+    "userConfirmation":  "User confirmed recovery and operation before requesting upload; not independently re-tested by agent"
+}

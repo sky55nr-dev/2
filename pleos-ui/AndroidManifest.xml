@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.roundwise.pleos">
 <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="34"/>
+<uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_MAP"/>
+<queries><package android:name="ai.umos.maps.android.navigation.app"/></queries>
 <uses-permission android:name="pleos.car.permission.NAVI_ROUTE"/><uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH"/><uses-permission android:name="pleos.car.permission.FUSED_LOCATION"/><uses-permission android:name="pleos.car.permission.TTS_SERVICE"/><uses-permission android:name="ai.pleos.playground.service.location.fused.FUSED_LOCATION_BINDING"/><uses-permission android:name="android.permission.INTERNET"/>
 <permission android:name="com.roundwise.pleos.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" android:protectionLevel="signature"/><uses-permission android:name="com.roundwise.pleos.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
 <application android:label="ROUNDWISE Pleos" android:icon="@android:drawable/ic_dialog_map" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:extractNativeLibs="true" android:supportsRtl="true">

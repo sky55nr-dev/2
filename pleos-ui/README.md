@@ -29,8 +29,18 @@
 
 UI 상용 배포에 필요한 계정·개인정보·오류 수집·실차 검증·접근성/주행 제한 인증은 완료하지 않았습니다. 이 결과물은 직접 조작 가능한 개발 시연판입니다.
 
+## 내비 연동 확인 (2026-11-16)
+
+NaviHelper 연결과 목적지 경로 요청은 확인했습니다. 개선판은 요청 후 공식 `requestNavigationScreen(NavigationScreenRequest.Foreground)` API로 내비 화면을 요청합니다. `NAVI_CUSTOM_MAP` 권한을 선언합니다. SDK의 연결 실패·화면 요청 실패 여부와 관계없이 설치된 Pleos 내비의 런처를 직접 실행합니다. 메인 화면의 **내비게이션 열기** 버튼으로 경로 전송 없이도 내비를 열 수 있습니다. 화면 열기는 경로 안내 성공과 구분합니다. 별도 이벤트 리스너의 `onRouteStarted`를 받아야만 안내 시작으로 표시하며, 요청 후 20초 동안 안내 시작이 확인되지 않으면 확인 필요 상태를 표시합니다.
+
+에이전트가 점검한 당시 에뮬레이터의 내장 내비 `ai.umos.maps.android.navigation.app`는 `서비스 연결 중입니다.`에서 대기합니다. 해당 프로세스 로그에서 `gateway probe failed UnknownHostException: Unable to resolve host connect-gw-coral.umos.ai`를 확인했습니다. 호스트 Windows DNS 조회는 성공했지만 에뮬레이터 안에서는 실패하므로 **실제 경로 안내 성공은 확인되지 않았습니다**. PC/에뮬레이터의 허용된 외부 네트워크 환경에서 다시 확인해야 합니다. 시스템 내비 데이터 삭제, 인증값 변경, 방화벽 해제는 수행하지 않았습니다.
+
+사용자는 이후 에뮬레이터 연결 복구와 정상 동작을 확인했다고 보고했습니다. 이는 사용자 확인이며, 에이전트가 실제 안내 시작 콜백을 재검증한 결과와는 구분합니다.
+
+공식 API: https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/NaviHelper/intro
+
 원본: https://github.com/JunHan-K/roundwise
 
 ## 확인
 
-`_local/test-pleos-ui.ps1`은 설치된 앱에서 UIAutomator로 경로 선택, 선호 적용, 일정 지연/초기화, 모드 전환을 확인합니다. `_local/DeviceAdb.java`는 기존 개발자 키로 localhost 에뮬레이터에만 접속하는 ADB 전송 도구입니다. PC ADB 서버의 사용자 폴더 접근 오류를 피하기 위해 사용하며, 외부 네트워크 연결은 없습니다.
+`pleos-ui/tools/test-pleos-ui.ps1`은 설치된 앱에서 UIAutomator로 경로 선택, 선호 적용, 일정 지연/초기화, 모드 전환을 확인합니다. `pleos-ui/tools/DeviceAdb.java`는 기존 개발자 키로 localhost 에뮬레이터에만 접속하는 ADB 전송 도구입니다. PC ADB 서버의 사용자 폴더 접근 오류를 피하기 위해 사용하며, 외부 네트워크 연결은 없습니다.
